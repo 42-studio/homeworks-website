@@ -34,6 +34,20 @@ Form submissions are sent via [Web3Forms](https://web3forms.com). To activate:
    <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_KEY">
    ```
 
+## Local preview
+
+```bash
+python3 -m http.server 3000
+```
+
+Then open [http://localhost:3000](http://localhost:3000). Stop the server with `Ctrl+C`.
+
+Alternatively, if you have Node installed:
+
+```bash
+npx serve .
+```
+
 ## Deploying to Cloudflare Pages
 
 ```bash

@@ -145,6 +145,91 @@ section { position: relative; }
 }
 
 /* ===========================================================
+   MEASURE OVERLAY — crosshair + dimension readout (technical drawing)
+   =========================================================== */
+.measure-overlay {
+  position: absolute; inset: 0; z-index: 6;
+  pointer-events: none; opacity: 0;
+  transition: opacity .35s ease;
+  font-family: var(--mono); color: var(--accent);
+  /* green readout, scoped to the overlay only — rest of the lead stays blue */
+  --accent: var(--green);
+}
+.measure-overlay.active { opacity: 1; }
+
+/* crosshair clip container — repositioned in dim-off mode to bound lines to the measured box */
+.m-line-clip { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+
+/* crosshair */
+.m-line { position: absolute; background: var(--accent); opacity: .55; }
+.m-vline { width: 1px; top: 0; bottom: 0; transform: scaleY(0); transform-origin: top center; }
+.m-hline { height: 1px; left: 0; right: 0; transform: scaleX(0); transform-origin: left center; }
+.measure-overlay.active .m-vline { transform: scaleY(1); transition: transform .5s cubic-bezier(.16,1,.3,1); }
+.measure-overlay.active .m-hline { transform: scaleX(1); transition: transform .5s cubic-bezier(.16,1,.3,1) .04s; }
+
+/* measured bounding frame — snaps to the hovered sub-element (card/image) or the whole section */
+.m-frame {
+  position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+  transition: left .28s cubic-bezier(.16,1,.3,1), top .28s cubic-bezier(.16,1,.3,1),
+              width .28s cubic-bezier(.16,1,.3,1), height .28s cubic-bezier(.16,1,.3,1);
+}
+.m-frame.sub { background: color-mix(in srgb, var(--green) 6%, transparent); outline: 1px dashed color-mix(in srgb, var(--green) 45%, transparent); outline-offset: -1px; }
+
+/* live coordinate badge at the cursor */
+.m-badge {
+  position: absolute; background: var(--accent); color: #fff;
+  font-size: 10px; letter-spacing: .06em; padding: 3px 7px; white-space: nowrap;
+  transform: translate(12px, 12px);
+}
+
+/* dimension lines: origin → cursor, X along the top, Y down the left —
+   aligned to the inset crop-mark corners */
+.m-dim { position: absolute; }
+.m-dim-x { top: 15px; left: 0; height: 0; border-top: 1px dashed var(--accent); }
+.m-dim-y { left: 15px; top: 0; width: 0; border-left: 1px dashed var(--accent); }
+.m-dim-x::before, .m-dim-x::after { content: ""; position: absolute; top: -4px; width: 1px; height: 9px; background: var(--accent); }
+.m-dim-x::before { left: 0; } .m-dim-x::after { right: 0; }
+.m-dim-y::before, .m-dim-y::after { content: ""; position: absolute; left: -4px; height: 1px; width: 9px; background: var(--accent); }
+.m-dim-y::before { top: 0; } .m-dim-y::after { bottom: 0; }
+.m-dim-label {
+  position: absolute; background: var(--paper); color: var(--accent);
+  font-size: 10px; letter-spacing: .04em; padding: 1px 5px; white-space: nowrap;
+}
+.m-dim-x .m-dim-label { right: 0; top: -19px; transform: translateX(50%); }
+.m-dim-y .m-dim-label { bottom: 0; left: 12px; }
+.feature .m-dim-label, .contact .m-dim-label { background: var(--ink); }
+
+/* tweak: dimension lines off → hide lines, show dashed bounded crosshair, no badge */
+.dim-off .m-dim { display: none; }
+.dim-off .m-frame.sub { outline: none; }
+.m-badge { display: none; }
+.dim-off .m-badge { display: block; }
+.dim-off .m-vline { background: none; border-left: 1px dashed var(--accent); }
+.dim-off .m-hline { background: none; border-top: 1px dashed var(--accent); }
+
+/* registration / crop marks — inset from the box edges */
+.m-corner { position: absolute; width: 13px; height: 13px; }
+.m-corner::before, .m-corner::after { content: ""; position: absolute; background: var(--accent); }
+.m-corner::before { width: 13px; height: 1px; } .m-corner::after { width: 1px; height: 13px; }
+.m-corner.tl { top: 8px; left: 8px; display: none; }
+.m-corner.tr { top: 8px; right: 8px; } .m-corner.tr::before, .m-corner.tr::after { right: 0; }
+.m-corner.bl { bottom: 8px; left: 8px; } .m-corner.bl::before, .m-corner.bl::after { bottom: 0; }
+.m-corner.br { bottom: 8px; right: 8px; display: none; } .m-corner.br::before, .m-corner.br::after { right: 0; bottom: 0; }
+.dim-off .m-corner.tl, .dim-off .m-corner.br { display: block; }
+
+/* overall bounding-box size readout */
+.m-size {
+  position: absolute; bottom: 8px; right: 8px;
+  background: var(--paper); border: 1px solid var(--accent); color: var(--accent);
+  font-size: 10px; letter-spacing: .08em; padding: 3px 8px;
+}
+.feature .m-size, .contact .m-size { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .measure-overlay .m-vline, .measure-overlay .m-hline { transition: none !important; }
+}
+
+/* ===========================================================
    HEADER
    =========================================================== */
 .site-header {
@@ -152,10 +237,8 @@ section { position: relative; }
   background: color-mix(in srgb, var(--paper) 88%, transparent);
   backdrop-filter: saturate(1.2) blur(10px);
   -webkit-backdrop-filter: saturate(1.2) blur(10px);
-  transition: transform .4s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
-.site-header.hide { transform: translateY(calc(-100% + 20px)); }
 .header-inner {
   max-width: var(--maxw); margin: 0 auto;
   padding: 18px var(--gut) 16px;
@@ -187,7 +270,7 @@ section { position: relative; }
 /* ===========================================================
    HERO
    =========================================================== */
-.hero { padding-top: clamp(40px, 7vw, 96px); padding-bottom: 0; }
+.hero { padding-top: clamp(40px, 7vw, 96px); padding-bottom: clamp(40px, 6vw, 80px); }
 .hero-head { position: relative; }
 .hero-tag {
   display: flex; flex-wrap: wrap; gap: 14px 28px; margin-bottom: clamp(20px, 4vw, 40px);
@@ -212,7 +295,7 @@ section { position: relative; }
 
 .hero-figure {
   position: relative; margin-top: clamp(40px, 6vw, 80px);
-  aspect-ratio: 16 / 8; width: 100%;
+  aspect-ratio: 16 / 12; width: 100%;
 }
 
 /* masked image wipe reveal */
@@ -250,6 +333,15 @@ section { position: relative; }
 .plan-tag.tl { top: 12px; left: 12px; } .plan-tag.tr { top: 12px; right: 12px; }
 .plan-tag.bl { bottom: 12px; left: 12px; } .plan-tag.br { bottom: 12px; right: 12px; }
 
+/* tweak: minimal ruler motif → plain solid band, marks hidden */
+.ruler-min .ruler { background-image: none; background-color: #A7A8AC; }
+
+/* tweaks: typography + hero */
+.serif-off .display,
+.serif-off .h-sec,
+.serif-off .h-sub,
+.serif-off .lead { font-family: var(--sans); font-weight: 600; letter-spacing: -0.03em; }
+
 /* ===========================================================
    HERO LOGO VARIANT
    =========================================================== */
@@ -257,7 +349,13 @@ section { position: relative; }
   display: none;
   height: clamp(40px, 7vw, 86px); width: auto;
   margin-bottom: clamp(22px, 4vw, 40px);
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 1s ease .1s, transform 1s cubic-bezier(.16,1,.3,1) .1s;
 }
+.show-hero-logo .hero-logo { display: block; }
+.show-hero-logo.in-view .hero-logo,
+.show-hero-logo .in-view .hero-logo { opacity: 1; transform: none; }
+.in-view .hero-logo { opacity: 1; transform: none; }
 
 /* ===========================================================
    GENERIC reveal
@@ -284,6 +382,7 @@ section { position: relative; }
 /* ===========================================================
    INTRO / POSITIONING
    =========================================================== */
+.intro { padding-top: calc(clamp(72px, 11vw, 160px) - clamp(40px, 6vw, 80px)); }
 .intro .lead { max-width: 24ch; font-size: clamp(26px, 4.4vw, 52px); line-height: 1.18; }
 .intro-grid { display: grid; gap: clamp(28px, 5vw, 64px); grid-template-columns: 1fr; }
 .intro-body p { color: var(--ink-2); max-width: 52ch; font-size: 17px; }
@@ -419,6 +518,7 @@ section { position: relative; }
   display: flex; flex-direction: column; padding: 90px var(--gut) 40px;
 }
 .menu-open .mobile-menu { transform: translateY(0); }
+.mob-links { flex: 1; display: flex; flex-direction: column; justify-content: center; }
 .mobile-menu a { font-family: var(--serif); font-size: clamp(34px, 9vw, 56px); padding: 12px 0; border-bottom: 1px solid var(--hair); display: flex; justify-content: space-between; align-items: baseline; }
 .mobile-menu a .mi { font-family: var(--mono); font-size: 12px; color: var(--accent); }
 .mobile-menu .mob-contact { margin-top: auto; display: grid; gap: 8px; font-family: var(--mono); font-size: 13px; }
@@ -445,10 +545,11 @@ section { position: relative; }
   .svc-grid { grid-template-columns: repeat(4, 1fr); }
   .process-track { grid-template-columns: repeat(3, 1fr); }
   .intro-stats { grid-template-columns: repeat(4, 1fr); }
-  .hero-figure { aspect-ratio: 16/7; }
+  .hero-figure { aspect-ratio: 16/10.5; }
 }
 @media (max-width: 759px) {
   .nav .nav-links { display: none; }
   .burger { display: block; }
   .feature-list { columns: 1; }
 }
+
