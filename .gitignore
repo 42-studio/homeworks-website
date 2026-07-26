@@ -3,3 +3,9 @@
 
 
 .wrangler/
+
+# Local source photography; optimised website copies live in assets/projects/.
+/projects/
+
+# Local browser verification artifacts.
+/.playwright-cli/
