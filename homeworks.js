@@ -62,22 +62,41 @@
   /* ---- scroll-linked before / after comparison ---- */
   document.querySelectorAll('[data-before-after]').forEach(function (compare) {
     var range = compare.querySelector('.ba-range');
+    var handle = compare.querySelector('.ba-handle');
     var manual = false;
     var dragging = false;
+    var dragOffsetY = 0;
     var ticking = false;
+    var measuring = false;
+    var lastPosition = -1;
+    var compareTop = 0;
+    var compareHeight = 0;
+    var viewportHeight = 0;
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function setPosition(value) {
+    function setPosition(value, force) {
       var position = Math.max(0, Math.min(100, value));
+      if (!force && Math.abs(position - lastPosition) < 0.15) return;
+      lastPosition = position;
       compare.style.setProperty('--position', position + '%');
-      range.value = Math.round(position);
+      var rounded = Math.round(position);
+      if (parseInt(range.value, 10) !== rounded) range.value = rounded;
+    }
+
+    function measure() {
+      measuring = false;
+      var rect = compare.getBoundingClientRect();
+      compareTop = rect.top + window.scrollY;
+      compareHeight = compare.offsetHeight;
+      viewportHeight = window.innerHeight;
+      updateFromScroll();
     }
 
     function updateFromScroll() {
       ticking = false;
       if (manual || reduceMotion) return;
-      var rect = compare.getBoundingClientRect();
-      var rawProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+      var rectTop = compareTop - window.scrollY;
+      var rawProgress = (viewportHeight - rectTop) / (viewportHeight + compareHeight);
       var deadzone = 0.40;
       var progress = (rawProgress - deadzone) / (1 - deadzone * 2);
       setPosition(progress * 100);
@@ -90,6 +109,13 @@
       }
     }
 
+    function requestMeasure() {
+      if (!measuring) {
+        measuring = true;
+        window.requestAnimationFrame(measure);
+      }
+    }
+
     function takeManualControl(value) {
       manual = true;
       compare.classList.add('is-manual');
@@ -98,32 +124,41 @@
 
     function positionFromPointer(ev) {
       var rect = compare.getBoundingClientRect();
-      return ((ev.clientY - rect.top) / rect.height) * 100;
+      return ((ev.clientY - dragOffsetY - rect.top) / rect.height) * 100;
     }
 
     range.addEventListener('input', function () { takeManualControl(); });
-    range.addEventListener('pointerdown', function (ev) {
+    handle.addEventListener('pointerdown', function (ev) {
+      var rect = compare.getBoundingClientRect();
       dragging = true;
-      range.setPointerCapture(ev.pointerId);
+      dragOffsetY = ev.clientY - (rect.top + lastPosition / 100 * rect.height);
+      handle.setPointerCapture(ev.pointerId);
+      range.focus({ preventScroll: true });
       takeManualControl(positionFromPointer(ev));
       ev.preventDefault();
     });
-    range.addEventListener('pointermove', function (ev) {
+    handle.addEventListener('pointermove', function (ev) {
       if (dragging) takeManualControl(positionFromPointer(ev));
     });
-    range.addEventListener('pointerup', function (ev) {
+    handle.addEventListener('pointerup', function (ev) {
       dragging = false;
-      if (range.hasPointerCapture(ev.pointerId)) range.releasePointerCapture(ev.pointerId);
+      if (handle.hasPointerCapture(ev.pointerId)) handle.releasePointerCapture(ev.pointerId);
     });
-    range.addEventListener('pointercancel', function () { dragging = false; });
+    handle.addEventListener('pointercancel', function () { dragging = false; });
     range.addEventListener('keydown', function (ev) {
       if (ev.key.indexOf('Arrow') === 0 || ev.key === 'Home' || ev.key === 'End') manual = true;
     });
     window.addEventListener('scroll', requestScrollUpdate, { passive: true });
-    window.addEventListener('resize', requestScrollUpdate);
+    window.addEventListener('resize', requestMeasure);
+    window.addEventListener('load', requestMeasure);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(requestMeasure);
+    if ('ResizeObserver' in window) new ResizeObserver(requestMeasure).observe(compare);
+    new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) requestMeasure();
+    }, { rootMargin: '100% 0px' }).observe(compare);
 
-    if (reduceMotion) setPosition(50);
-    else updateFromScroll();
+    if (reduceMotion) setPosition(50, true);
+    else measure();
   });
 
   /* ---- project galleries ---- */
