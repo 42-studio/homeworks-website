@@ -19,6 +19,9 @@
     burger.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
   menu.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeMenu); });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && document.body.classList.contains('menu-open')) { closeMenu(); burger.focus(); }
+  });
 
   /* ---- scroll reveals ---- */
   var io = new IntersectionObserver(function (entries) {
@@ -169,6 +172,7 @@
     var current = 0;
     var autoTimer = null;
     var hovered = false;
+    var focused = false;
     var visible = false;
     var interval = parseInt(gallery.getAttribute('data-gallery-interval'), 10) || 6000;
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -191,11 +195,15 @@
     }
     function syncAuto() {
       stopAuto();
-      if (!reduceMotion && visible && !hovered && !document.hidden) {
-        autoTimer = window.setInterval(function () { goTo(current + 1); }, interval);
+      if (!reduceMotion && visible && !hovered && !focused && !document.hidden) {
+        autoTimer = window.setInterval(function () {
+          count.setAttribute('aria-live', 'off'); // don't announce auto-advance to screen readers
+          goTo(current + 1);
+        }, interval);
       }
     }
     function manualGoTo(index) {
+      count.setAttribute('aria-live', 'polite');
       goTo(index);
       syncAuto();
     }
@@ -211,6 +219,10 @@
 
     gallery.addEventListener('mouseenter', function () { hovered = true; syncAuto(); });
     gallery.addEventListener('mouseleave', function () { hovered = false; syncAuto(); });
+    gallery.addEventListener('focusin', function () { focused = true; syncAuto(); });
+    gallery.addEventListener('focusout', function (ev) {
+      if (!gallery.contains(ev.relatedTarget)) { focused = false; syncAuto(); }
+    });
     document.addEventListener('visibilitychange', syncAuto);
 
     var galleryIO = new IntersectionObserver(function (entries) {
@@ -251,6 +263,7 @@
       if (!name.value || !email.value || !msg.value) {
         note.textContent = '⚠ Please add your name, email and a short message.';
         note.style.color = '#e0a23a';
+        (!name.value ? name : !email.value ? email : msg).focus();
         return;
       }
 

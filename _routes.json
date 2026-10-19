@@ -1,5 +1,15 @@
 {
   "version": 1,
-  "include": ["/*"],
-  "exclude": ["/", "/assets/*", "/styles.css", "/homeworks.js"]
+  "include": [
+    "/*"
+  ],
+  "exclude": [
+    "/",
+    "/assets/*",
+    "/styles.css",
+    "/homeworks.js",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/llms.txt"
+  ]
 }
