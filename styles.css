@@ -574,6 +574,98 @@ section { position: relative; }
 .footer-bottom { border-top: 1px solid var(--hair); padding: 22px 0; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
 .footer-bottom, .footer-bottom a { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--ink-2); text-transform: uppercase; }
 
+/* Studio 42 credit: "built by" and a square showing the striped "42" from its logo. On hover the
+   box widens to the right to show the whole of STUDIO 42, as an overlay (so the footer never
+   reflows or wraps). */
+.s42,
+.s42:hover {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-2);
+  font-family: var(--mono); /* same type as .footer-bottom */
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  text-decoration: none
+}
+
+/* Wide screens: bottom of the brand column, level with the last row of links.
+   Below 760px: under the Contact column instead. */
+.footer-brand { display: flex; flex-direction: column; gap: 20px; }
+.footer-brand .s42 { margin-top: auto; }
+.footer-col .s42 { display: none; margin-top: 14px; padding: 0; font-size: 11px; color: var(--ink-2); }
+@media (max-width: 759px) {
+  .footer-brand .s42 { display: none; }
+  .footer-col .s42 { display: inline-flex; }
+}
+
+.s42-by { white-space: nowrap; }
+
+/* Hover area: the link's own box at rest; once open it stretches right over the widened box,
+   so moving across the box never drops the hover. */
+.s42::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0
+}
+
+.s42:hover::before,
+.s42:focus-visible::before {
+  right: -85px
+}
+
+/* Closing: a soft glide in, no overshoot (it would clip the 4). */
+.s42-win {
+  transition: width .55s cubic-bezier(.25, 1, .5, 1)
+}
+
+.s42-chip {
+  position: relative;
+  width: 45px;
+  height: 45px
+}
+
+.s42-box {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  padding: 14px 9px; /* square at rest: 27 + 18 = 17 + 28 */
+  overflow: hidden; /* the box's edge is the reveal edge: STUDIO slides in from under it */
+  border-radius: 6px;
+  background: #760000;
+  color: #C2C1C1;
+  box-shadow: 0 4px 12px rgba(31, 36, 64, 0.18), 0 1px 3px rgba(31, 36, 64, 0.12)
+}
+
+/* The logo is pinned to this window's right edge and overflows to its left, into the box's
+   padding, where the box clips it. As the window widens, the 42 rides the right edge out. */
+.s42-win {
+  display: flex;
+  justify-content: flex-end;
+  width: 27px
+}
+
+.s42-win svg {
+  flex: none
+}
+
+.s42:hover .s42-win,
+.s42:focus-visible .s42-win {
+  width: 112px
+}
+
+/* Opening: a damped spring (ζ 0.8, ω 15 rad/s over 0.6s), overshooting 1.5% and settling.
+   Browsers without linear() get a plain overshoot curve. */
+.s42:hover .s42-win,
+.s42:focus-visible .s42-win {
+  transition-duration: .6s;
+  transition-timing-function: cubic-bezier(.3, 1.1, .5, 1);
+  transition-timing-function: linear(0, 0.057, 0.188, 0.344, 0.498, 0.635, 0.749, 0.837, 0.903, 0.949, 0.98, 0.999, 1.009, 1.014, 1.015, 1.014, 1.012, 1.01, 1.008, 1.005, 1.004, 1.002, 1.001, 1.001, 1)
+}
+
 .footer-mark { padding: clamp(40px, 6vw, 72px) 0 clamp(16px, 2.5vw, 28px); }
 .footer-mark img { width: 100%; height: auto; opacity: .9; }
 
