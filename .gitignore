@@ -9,3 +9,4 @@
 
 # Local browser verification artifacts.
 /.playwright-cli/
+/.playwright-mcp/
